@@ -115,7 +115,7 @@ services:
     runtime:
       mkdir: ["/var/lib/docker"]
   - name: docker-fakece
-    image: singelet/docker-fakece:1.0
+    image: docker-fakece:1.0
     capabilities:
         - CAP_SYS_ADMIN
     binds:
