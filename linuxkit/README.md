@@ -19,7 +19,9 @@ export PATH=$PATH:$(pwd)/bin
 # Build the kernel
 cat config-4.14.x-x86_64 config-wifi > config-4.14.x-x86_64-wifi
 make EXTRA=-wifi build_4.14.x-wifi
-# These options stay fairly consistent across kernel versions, if not, read the LinuxKit kernel docs on ["Modifying the kernel config"](https://github.com/linuxkit/linuxkit/blob/master/docs/kernels.md#modifying-the-kernel-config)
+# These options stay fairly consistent across kernel versions
+# If not, read the LinuxKit kernel docs on "Modifying the kernel config"
+# https://github.com/linuxkit/linuxkit/blob/master/docs/kernels.md#modifying-the-kernel-config)
 
 # Note the resulting tagged output e.g.
 # Successfully tagged linuxkit/kernel:4.14.52-wifi-ba03a8d668eb6be981e1ff71883b5e9e26274971-amd64
