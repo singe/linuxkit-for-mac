@@ -47,7 +47,7 @@ onboot:
     image: linuxkit/dhcpcd:v0.6
     command: ["/sbin/dhcpcd", "--nobackground", "-f", "/dhcpcd.conf", "-1"]
   - name: modprobe
-    image: linuxkit/modprobe:v0.4
+    image: linuxkit/modprobe:v0.6
     command: ["modprobe", "-a", "mac80211_hwsim"]
 services:
   # Enable acpi to shutdown on power events
