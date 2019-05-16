@@ -15,9 +15,6 @@ cd linuxkit
 make
 export PATH=$PATH:$(pwd)/bin
 
-# If you're going to build ISOs, you'll need to pull the mkiso image
-image=$(grep 'iso-efi":  ' src/cmd/linuxkit/vendor/github.com/moby/tool/src/moby/output.go|cut -d\" -f4)
-docker pull $image
 ```
   * installed with [brew](https://brew.sh/):
 ```
@@ -43,7 +40,7 @@ docker build -t docker-fakece:1.0 .
 cd ../linuxkit
 linuxkit build --disable-content-trust --format iso-efi docker-for-mac-wifi.yml
 
-# Replace the Docker for Mac ISO. First stop Docker.
+# Replace the Docker for Mac ISO. Remember to first stop Docker.
 mv /Applications/Docker.app/Contents/Resources/linuxkit/docker-for-mac.iso /Applications/Docker.app/Contents/Resources/linuxkit/docker-for-mac.iso.orig
 cp docker-for-mac-wifi-efi.iso /Applications/Docker.app/Contents/Resources/linuxkit/docker-for-mac.iso
 # Now restart docker
