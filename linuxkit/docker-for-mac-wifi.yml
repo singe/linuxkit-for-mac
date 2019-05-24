@@ -1,6 +1,6 @@
 # This is an example for building the open source components of Docker for Mac
 kernel:
-  image: singelet/kernel:4.14.118-wifi-534e626d0993efd47f706b6110826db9dd7b9454-amd64
+  image: singelet/linuxkit-kernel-wifi:4.14.x-wifi
   cmdline: "console=ttyS0 page_poison=1"
 init:
   - linuxkit/vpnkit-expose-port:v0.7 # install vpnkit-expose-port and vpnkit-iptables-wrapper on host

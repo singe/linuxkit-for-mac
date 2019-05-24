@@ -1,4 +1,4 @@
-FROM alpine:3.7
+FROM alpine:3.8
 ADD /sendtohost /
 ADD /transfused /usr/bin/
 ADD /entrypoint.sh /usr/bin/
