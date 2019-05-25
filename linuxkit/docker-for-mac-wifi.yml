@@ -109,13 +109,13 @@ services:
             "--storage-driver", "overlay2" ]
     runtime:
       mkdir: ["/var/lib/docker"]
-  - name: docker-fakece
-    image: docker-fakece:1.0
-    capabilities:
-        - CAP_SYS_ADMIN
-    binds:
-        - /dev/fuse:/dev/fuse
-    command: [ "/usr/bin/entrypoint.sh"]
+  #- name: docker-fakece
+    #image: docker-fakece:1.0
+    #capabilities:
+        #- CAP_SYS_ADMIN
+    #binds:
+        #- /dev/fuse:/dev/fuse
+    #command: [ "/usr/bin/entrypoint.sh"]
 
 trust:
     org:
