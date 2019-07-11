@@ -1,9 +1,10 @@
 LinuxKit Mods
 =============
 
+If you want to know how to build your own wifi kernel, read on. You shouldn't need to do this though, just ```docker pull singelet/kernel:<latest tag>```. Since [linuxkit-kernel-wifi](https://hub.docker.com/r/singelet/linuxkit-kernel-wifi/tags) has a list of autobuilt wifi-enabled x86 kernel images that automatically tracks the main linuxkit repository.
+
 If you want to know how to build LinuxKit VMs using these YAML files, see the instructions in the [parent](https://github.com/singe/linuxkit-for-mac/) directory.
 
-If you want to know how to build your own wifi kernel, read on. You shouldn't need to do this though, just ```docker pull singelet/kernel:<latest tag>```.
 
 ### Instructions
 
