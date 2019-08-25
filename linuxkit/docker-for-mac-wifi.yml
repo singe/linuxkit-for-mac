@@ -1,12 +1,13 @@
 # This is an example for building the open source components of Docker for Mac
 kernel:
+  #image: linuxkit/kernel:4.19.51
   image: singelet/linuxkit-kernel-wifi:4.14.x-wifi
   cmdline: "console=ttyS0 page_poison=1"
 init:
   - linuxkit/vpnkit-expose-port:v0.7 # install vpnkit-expose-port and vpnkit-iptables-wrapper on host
-  - linuxkit/init:v0.7
-  - linuxkit/runc:v0.7
-  - linuxkit/containerd:v0.7
+  - linuxkit/init:1a0c6b624708b5a9e58b9a608a9ce3164e7b2908
+  - linuxkit/runc:c1f0db27e71d948f3134b31ce76276f843849b0a
+  - linuxkit/containerd:2e7e59b8af98a1cec834dc9fe7aba271bf4b0a41
   - linuxkit/ca-certificates:v0.7
 onboot:
   # support metadata for optional config in /run/config
@@ -26,7 +27,7 @@ onboot:
     command: ["/usr/bin/mountie", "/var/lib"]
   # make a swap file on the mounted disk
   - name: swap
-    image: linuxkit/swap:v0.7
+    image: linuxkit/swap:f8b0434963b4c9114db473aab3b9409bccd4f85b
     command: ["/swap.sh", "--path", "/var/lib/swap", "--size", "1024M"]
   # mount-vpnkit mounts the 9p share used by vpnkit to coordinate port forwarding
   - name: mount-vpnkit
@@ -48,7 +49,7 @@ onboot:
     command: ["/sbin/dhcpcd", "--nobackground", "-f", "/dhcpcd.conf", "-1"]
   - name: modprobe
     image: linuxkit/modprobe:v0.7
-    command: ["modprobe", "-a", "mac80211_hwsim"]
+    command: ["modprobe", "mac80211_hwsim", "radios=4"]
 services:
   # Enable acpi to shutdown on power events
   - name: acpid
@@ -109,13 +110,6 @@ services:
             "--storage-driver", "overlay2" ]
     runtime:
       mkdir: ["/var/lib/docker"]
-  #- name: docker-fakece
-    #image: docker-fakece:1.0
-    #capabilities:
-        #- CAP_SYS_ADMIN
-    #binds:
-        #- /dev/fuse:/dev/fuse
-    #command: [ "/usr/bin/entrypoint.sh"]
 
 trust:
     org:
