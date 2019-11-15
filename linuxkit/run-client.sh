@@ -1,2 +1,3 @@
 #!/bin/sh
-docker -H unix://$(pwd)/docker-for-mac-wifi-efi-state/guest.00000948 $@
+dir=$(dirname $0)
+docker -H unix://$dir/docker-for-mac-wifi-efi-state/guest.00000948 $@
