@@ -10,6 +10,8 @@ This approach will modify the .iso used for the interstitial LinuxKit HyperKit V
 
 * [Docker for Mac](https://www.docker.com/docker-mac)
 
+It needs to be running, and after the process has completed, restarted.
+
 ### Instructions
 
 Merely clone this repository, and run `./build.sh`
