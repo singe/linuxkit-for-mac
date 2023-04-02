@@ -1,50 +1,19 @@
 #!/bin/bash
 
-isofile="/Applications/Docker.app/Contents/Resources/linuxkit/docker-desktop.iso"
-mountloc="/Volumes/ISOIMA"
+appdir="/Applications/Docker.app/Contents/Resources/linuxkit/"
+dockerrepo="singelet/linuxkit-kernel-wifi"
 
-echo "[.] Extracting current ISO located at $isofile"
-
-if [ ! -f $isofile ]; then
-  echo "[!] $isofile not found, do you have Docker Desktop installed to /Applications"
+echo "[.] Working out docker host kernel version"
+kernelseries=$(docker run -it --rm alpine:latest uname -r | grep -o "^[0-9]*\.[0-9]*").x
+echo $kernelseries | grep "^[0-9]*\.[0-9]*\.x" > /dev/null #should look something like 5.15.x
+if [[ $? -eq 1 ]]; then
+  echo "[!] Kernel series extracted from docker doesn't look correct: $kernelseries"
   exit 1
 fi
+echo "[.] Extracted kernel series is: $kernelseries"
 
-echo "[.] Attaching iso"
-mountloc=$(hdiutil attach $isofile|cut -f3)
-
-if [ $? -eq 1 ]; then
-  echo "[!] $isofile was not mounted"
-  exit 1
-fi
-
-if [ ! -d $mountloc ]; then
-  echo "[!] $mountloc not found, iso mount not found"
-  exit 1
-fi
-
-echo "[.] Making temporary dir"
-tmp=$(mktemp -d /tmp/linuxkitiso.XXXXX)
-
-if [ ! -d $tmp ]; then
-  echo "[!] Temporary directory $tmp not created"
-  exit 1
-fi
-
-echo "[.] Creating tarball of iso"
-tar -C $mountloc -cvf $tmp/iso.tar .
-
-if [ ! -s $tmp/iso.tar ]; then
-  echo "[!] Tarball $tmp/iso.tar either empty or not there."
-  exit 1
-fi
-
-echo "[.] Unmounting iso"
-diskutil eject $mountloc
-
-kernelseries="4.19.x"
-dockerimage="singelet/linuxkit-kernel-wifi:$kernelseries-wifi"
-echo "[.] Fetch latest linuxkit wifi kernel $dockerimage"
+dockerimage="$dockerrepo:$kernelseries-wifi"
+echo "[.] Fetch latest linuxkit wifi kernel: $dockerimage"
 docker pull $dockerimage
 
 numimages=$(docker images -f=reference="$dockerimage"|wc -l|awk '{print $1}')
@@ -53,9 +22,20 @@ if [[ ! $numimages > 1 ]]; then
   exit 1
 fi
 
+tmp=$(mktemp -d /tmp/linuxkitiso.XXXXX)
+echo "[.] Temporary directory is at: $tmp"
+
+if [ ! -d $tmp ]; then
+  echo "[!] Temporary directory $tmp not created"
+  exit 1
+fi
 
 echo "[.] Extracting Kernel from Docker image"
 docker image save $dockerimage > $tmp/docker.tar
+if [ ! -f $tmp/docker.tar ]; then
+  echo "[!] $tmp/docker.tar not found, image extraction failed"
+  exit 1
+fi
 tar -C $tmp --strip-components 1 -xvf $tmp/docker.tar */layer.tar
 tar -C $tmp -xvf $tmp/layer.tar kernel kernel.tar
 
@@ -64,54 +44,57 @@ if [ ! -f $tmp/kernel ]; then
   exit 1
 fi
 
-cmdline="BOOT_IMAGE=/boot/kernel console=ttyS0 console=ttyS1 page_poison=1 vsyscall=emulate panic=1 root=/dev/sr0 text"
-
-echo "[.] Creating new kernel layout"
-mkdir $tmp/boot && mv $tmp/kernel $tmp/boot/
+echo "[.] Decompressing kernel"
 tar -C $tmp -xvf $tmp/kernel.tar
-echo $cmdline > $tmp/boot/cmdline
+mv $tmp/kernel $tmp/kernel.gz
+gunzip $tmp/kernel.gz
 
-echo "[.] Adding new kernel to iso tarball"
-tar -C $tmp -uvf $tmp/iso.tar ./boot ./lib
-
-tar -C $tmp -tf $tmp/iso.tar | grep "/lib/modules/.*-linuxkit-wifi" > /dev/null
+file $tmp/kernel | grep "Linux kernel" > /dev/null
 if [[ $? -eq 1 ]]; then
-  echo "[!] Kernel modules not found in resulting $tmp/iso.tar, something went wrong."
+  echo "[!] The kernel doesn't look like a Linux kernel boot executable"
   exit 1
 fi
 
-mkisoimage="linuxkit/mkimage-iso-efi:667bd641fd37062eaf9d2173c768ebfcedad3876"
-echo "[.] Fetching linuxkit mkiso $mkisoimage"
-docker pull $mkisoimage
-
-numimages=$(docker images -f=reference="$mkisoimage"|wc -l|awk '{print $1}')
-if [[ ! $numimages > 1 ]]; then
-  echo "[!] The docker $mkisoimage image was not fetched successfull."
+echo "[.] Extracting original initrd.img - this will require sudo creds to preserve ACLs and special files"
+mkdir $tmp/initrd
+cd $tmp/initrd
+sudo cpio -id < $appdir/initrd.img
+if [ ! -f $tmp/initrd/init ]; then
+  echo "[!] $tmp/initrd/init not found, there was a problem with initrd extraction"
   exit 1
 fi
 
-echo "[.] Creating iso"
-#docker run -it --rm -v $tmp:/iso --entrypoint sh $mkisoimage -c "/make-efi < iso/iso.tar 2> /dev/null" > $tmp/docker-desktop.iso
-docker run --rm -v $tmp:/iso --entrypoint sh $mkisoimage -c "sed -i.bak 's/cat linuxkit-efi.iso//' /make-efi && /make-efi < iso/iso.tar > /dev/null && mv /tmp/efi/linuxkit-efi.iso /iso/docker-desktop.iso"
-
-result=$(file $tmp/docker-desktop.iso|cut -d: -f2) 
-expected="ISO 9660 CD-ROM filesystem data 'ISOIMAGE' (bootable)"
-echo "$result" | grep "$expected" > /dev/null
+echo "[.] Copying the new kernel into the extracted initrd image - required sudo"
+sudo cp -R $tmp/boot $tmp/lib $tmp/initrd/
+echo "[.] Creating the new initrd.img - requires sudo"
+sudo find . | sudo cpio -oz -H newc -F ../initrd.img
+file $tmp/initrd.img | grep "gzip compressed data" > /dev/null
 if [[ $? -eq 1 ]]; then
-  echo "[!] Created iso does not look correct. Got \"$result\" instead of \"$expected\""
+  echo "[!] There was a problem creating the new $tmp/initrd.img"
   exit 1
 fi
+cd -
 
-sha=$(shasum $tmp/docker-desktop.iso|awk '{print $1}')
+shainitrd=$(shasum $tmp/initrd.img|awk '{print $1}')
+shakernel=$(shasum $tmp/kernel|awk '{print $1}')
 
-echo "[.] Replacing existing Docker iso (backed up at $isofile.bak)"
-mv $isofile $isofile.bak
-mv $tmp/docker-desktop.iso $isofile
+echo "[.] Replacing existing Docker images (backed up at $appdir/kernel.bak and $appdir/initrd.bak)"
+if [ -f $appdir/initrd.img.bak ]; then
+  echo "[!] $appdir/initrd.img.bak already exists, cowardly refusing to overwrite it"
+  exit 1
+fi
+mv $appdir/initrd.img $appdir/initrd.img.bak
+mv $appdir/kernel $appdir/kernel.bak
+mv $tmp/initrd.img $appdir/initrd.img
+mv $tmp/kernel $appdir/kernel
 
-shasum $isofile | grep $sha > /dev/null
+shasum $appdir/initrd.img | grep $shainitrd > /dev/null
 if [[ $? -eq 1 ]]; then
-  echo "[!] $isofile was not replaced with the new ISO (SHA mismatch)"
+  echo "[!] $appdir/initrd.img was not replaced with the new image (SHA mismatch)"
   exit 1
 fi
 
-echo "[+] Done. Restart Docker Desktop."
+echo "[.] Deleting the $tmp directory"
+rm -rf $tmp
+
+echo "[+] Done. Please restart Docker Desktop."
