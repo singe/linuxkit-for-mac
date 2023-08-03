@@ -12,9 +12,9 @@ This approach will modify the initrd.img and kernel used for the interstitial Li
 
 It needs to be running, and after the process has completed, restarted.
 
-* A build linuxkit wifi kernel
+* A built linuxkit wifi kernel
 
-These are usually done automatically at [Docker Hub](https://hub.docker.com/repository/docker/singelet/linuxkit-kernel-wifi/general) but automatic builds need to be redone, so you might need to build your own. Instructions coming.
+These are usually done automatically and stored at [Docker Hub](https://hub.docker.com/repository/docker/singelet/linuxkit-kernel-wifi/general).
 
 ### Instructions
 
