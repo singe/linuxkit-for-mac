@@ -2,9 +2,10 @@
 
 appdir="/Applications/Docker.app/Contents/Resources/linuxkit/"
 dockerrepo="singelet/linuxkit-kernel-wifi"
+platform="arm64"
 
 echo "[.] Working out docker host kernel version"
-kernelseries=$(docker run -it --rm alpine:latest uname -r | grep -o "^[0-9]*\.[0-9]*").x
+kernelseries=$(docker run -it --rm --platform linux/$platform alpine:latest uname -r | grep -o "^[0-9]*\.[0-9]*").x
 echo $kernelseries | grep "^[0-9]*\.[0-9]*\.x" > /dev/null #should look something like 5.15.x
 if [[ $? -eq 1 ]]; then
   echo "[!] Kernel series extracted from docker doesn't look correct: $kernelseries"
@@ -14,7 +15,7 @@ echo "[.] Extracted kernel series is: $kernelseries"
 
 dockerimage="$dockerrepo:$kernelseries-wifi"
 echo "[.] Fetch latest linuxkit wifi kernel: $dockerimage"
-docker pull $dockerimage
+docker pull --platform linux/$platform $dockerimage
 
 numimages=$(docker images -f=reference="$dockerimage"|wc -l|awk '{print $1}')
 if [[ ! $numimages > 1 ]]; then
@@ -44,10 +45,14 @@ if [ ! -f $tmp/kernel ]; then
   exit 1
 fi
 
-echo "[.] Decompressing kernel"
+echo "[.] Check if the kernel is compressed"
 tar -C $tmp -xvf $tmp/kernel.tar
-mv $tmp/kernel $tmp/kernel.gz
-gunzip $tmp/kernel.gz
+file $tmp/kernel | grep "gzip compressed data" > /dev/null
+if [[ $? -eq 0 ]]; then
+  echo "[.] Decompressing kernel"
+  mv $tmp/kernel $tmp/kernel.gz
+  gunzip $tmp/kernel.gz
+fi
 
 file $tmp/kernel | grep "Linux kernel" > /dev/null
 if [[ $? -eq 1 ]]; then
@@ -94,7 +99,8 @@ if [[ $? -eq 1 ]]; then
   exit 1
 fi
 
-echo "[.] Deleting the $tmp directory"
+echo "[.] Deleting the $tmp directory - needs sudo to remove the root owned files"
 rm -rf $tmp
+sudo rm -rf $tmp
 
 echo "[+] Done. Please restart Docker Desktop."
